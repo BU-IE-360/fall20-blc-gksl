@@ -1,2 +1,3 @@
 # fall20-blc-gksl
-fall20-blc-gksl created by GitHub Classroom
+
+[Here](files/Goksel-Bilici_example_homework_0.html) is my 5 interesting forecasting R examples.
