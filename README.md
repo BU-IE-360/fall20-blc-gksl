@@ -1,3 +1,3 @@
 # fall20-blc-gksl
 
-[Here](files/Goksel-Bilici_example_homework_0.html) is my 5 interesting forecasting R examples.
+[Here](https://bu-ie-360.github.io/fall20-blc-gksl/) is my github page.
