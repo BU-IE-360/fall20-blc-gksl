@@ -8,4 +8,4 @@
 
 
 ## Week 8 (December 17)
-[Here](files/HW2/Göksel-Bilici_HW2.html) is my second homework, which try to find the relation between CPI and Dollar exchange rates, imports.
+[Here](files/HW2/Goksel-Bilici_HW2.html) is my second homework, which try to find the relation between CPI and Dollar exchange rates, imports.
