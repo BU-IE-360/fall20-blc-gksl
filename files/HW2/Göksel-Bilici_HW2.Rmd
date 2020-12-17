@@ -211,3 +211,6 @@ ggplot(theData, aes(Date))+
 + [Electronic Data Delivery System, Central Bank of Turkey](https://evds2.tcmb.gov.tr/)
 + [Wikipedia](https://www.wikipedia.org/)
 + [Investopedia](https://www.investopedia.com/)
+
+# Appendices
++ [Here](Göksel-Bilici_HW2.Rmd) is the markdown file.
