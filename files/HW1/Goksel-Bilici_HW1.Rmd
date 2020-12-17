@@ -1,0 +1,274 @@
+---
+title: "Goksel-Bilici_HW1"
+author: "Göksel Bilici"
+date: "20 11 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#HW1 Göksel Bilici
+
+ In this homework I want to investigate university students in top 5 cities of Turkey, and look for how the number of students change in different years. Then I check consumer price index(TÜFE in turkish) depending of months in different years and lasly I checked how the powery(yoksulluk) and time related in differen regions in Turkey.
+
++The code will be given in order of topics.
+
+++ All code requires these libraries to function:
+```{r}
+library("xlsx")
+library("ggplot2")
+library("lubridate")
+```
+
+# 1-) a-) University Student
+## b-)
+
+```{r}
+egitim_data <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/Illere_gore_egitim.xls", sheetIndex=1)
+
+ggplot(egitim_data,aes(City, Total))+
+  geom_bar(stat="identity", aes(fill = factor(City)),color= factor(egitim_data$City_code))+
+  facet_wrap(egitim_data$Year)+
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())+
+  labs(x="Cities",
+       y="University Students",
+       fill = "The Cities",
+       title="University students in different cities from 2008 to 2019")
+```
+
+
+ Here we observe 5 of the biggest cities of Turkey, İstanbul, İzmir, Ankara, Adana and Diyarbakır. Over the years the shape of histogram changed not relatively but generally. Because as we can see İstanbul and Ankara always have higher number of students but all cities have higher students than their former year students. But when we look closer we realise that the more student the city have, the higher increase of number of students it has.
+```{r}
+ggplot(egitim_data,aes(City, Total))+
+  geom_bar(stat="identity",position = position_dodge(width = 0.5), aes(fill = factor(Year)), color= factor(egitim_data$City_code)) +
+  labs(x="5 Big Cities",
+       y="University Students",
+       fill = "Years",
+       title="Total University Student")
+```
+
+ In the above graphic it is easier to understand increase of students is higher in the cities that had higher number of students before.
+ And in all these cities the number of university students almost more than doubled in 11 years, especially in İstanbul there is a huge increase in that sense.
+ 
+## c-)
+
+ Because universities generally function more in big cities, it probably wouldn't be wrong if we say number of university students increase according to these rates. As checked total number of university students in Turkey was 476000 in 2008 and 1516000 in 2019.
+ So lets check our data and relevant keyword seach which is "üniversite", meaning university in Turkish.
+```{r}
+ggplot(egitim_data,aes(factor(Year), Total))+
+  geom_boxplot(aes(fill = factor(Year)))+
+  theme(legend.position = "none")+
+  labs(x="Years",y="Students",
+       title="Number of University Students in the 5 cities between 2008 to 2019")
+```
+
+ In that boxplot table we can observe the boxes size increase and go up gradually.
+ 
+```{r}
+universite_arama <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/universite.xlsx", sheetIndex=1)
+
+ggplot(universite_arama,aes(factor(year(Zaman)), universite))+
+  geom_boxplot(aes(fill=factor(year(Zaman))))+
+  theme(legend.position = "none")+
+  labs(x="Years",y="Search of 'universite'",
+       title="Search of 'universite' by Years")
+```
+
+ Apart from decrease search number in 2009 the search total always increased until the end, which shows us the higher the university student the higher the university search in web. The issue in 2009 is probably related to 2008 economic crisis, because as financial comfort decrease the people can go to university decrease.
+
+
+# 2-) a-) Consumer Prise Index, TÜFE
+
+## b-)
+
+
+ "The Consumer Price Index (CPI) is a measure that examines the weighted average of prices of a basket of consumer goods and services, such as transportation, food, and medical care. It is calculated by taking price changes for each item in the predetermined basket of goods and averaging them. Changes in the CPI are used to assess price changes associated with the cost of living. The CPI is one of the most frequently used statistics for identifying periods of inflation or deflation." says Investopedia . So lets look that CPI if we'll be able to see any relation between months and CPI.
+ 
+```{r}
+tufe_data <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/Tuketici_fiyatlari.xlsx", sheetIndex=1)
+
+ggplot(tufe_data,aes(x=factor(month(Zaman)),y= TUFE_AYLIK))+
+  geom_bar(stat="identity", aes(fill = factor(month(Zaman))),color="green")+
+  facet_wrap(~year(Zaman))+
+  theme(legend.position = "none")+
+  labs(x="Months",
+       y="Monthly TUFE",
+       title="Histograms of Monthly TUFE rates of Years")
+```
+ 
+  
+when we look at that table we can see that there is unstability in 2011 but more distinctively we can see there is a huge increase in CPI in 2018. Apart from that when we look at these data we can realise that independent of year always there is an increase in CPI in the 9th and 10th months of the year.
+
+```{r}
+ggplot(tufe_data, aes(Zaman, TUFE_AYLIK)) +
+  geom_bar(stat = "identity", color = "yellow") +
+  geom_smooth(color = "cyan")
+```
+
+  As we look we can think there is an increasing pattern in CPI but it is probably due to the effect of 2018. Because 2018 act on the CPI like an outlier. Therefore we can say in 4-5 years the mean CPI will decrease a bit and stay stable. But we can never be sure.
+  
+## c-)
+
+```{r}
+ggplot(tufe_data,aes(x=factor(month(Zaman)),y= TUFE_AYLIK))+
+  geom_boxplot(aes(fill = factor(month(Zaman))))+
+  theme(legend.position = "none")+
+  labs(x="Months",y="TUFE Rates",
+       title="TUFE rates of Months in 2005-2020")
+```
+
+  As we mention above there is a pattern-like situation here that says in 9th and 10th CPI always increase relatively.
+  
+```{r}
+tufe_arama <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/tufe.xlsx", sheetIndex=1)
+
+ggplot(tufe_arama,aes(factor(month(Zaman)), tufe))+
+  geom_boxplot(aes(fill=factor(month(Zaman))))+
+  theme(legend.position = "none")+
+  labs(x="Months",y="Search of 'TUFE'",
+       title="Search of 'TUFE' by Months")
+```
+  
+  When we look at seach of 'TÜFE' and real 'TÜFE' we can not we cannot see any relation in general. But  maybe we can say there is always an increase in TÜFE from december to january and also almost always there is an increase searc for 'TÜFE' when time goes from december to january.
+  
+  
+  
+# 3-) a-) Poverty, 'Yoksulluk'
+
+## b-)
+
+  In Turkey there are 26 regions in terms of poverty statistics and they are:
+  
+  1-) TR10 (İstanbul)
+  
+  2-) TR21 (Tekirdağ, Edirne, Kırklareli)
+  
+  3-) TR22 (Balıkesir, Çanakkale)
+  
+  4-) TR31 (İzmir)
+  
+  5-) TR32 (Aydın, Denizli, Muğla)
+  
+  6-) TR33 (Manisa, Afyon, Kütahya, Uşak)
+  
+  7-) TR41 (Bursa, Eskişehir, Bilecik)
+  
+  8-) TR42 (Kocaeli, Sakarya, Düzce, Bolu, Yalova)
+  
+  9-) TR51 (Ankara)
+  
+  10-) TR52 (Konya, Karaman)
+  
+  11-) TR61 (Antalya, Isparta, Burdur)
+  
+  12-) TR62 (Adana, Mersin)
+  
+  13-) TR63 (Hatay, Kahramanmaraş, Osmaniye)
+  
+  14-) TR71 (Kırıkkale, Aksaray, Niğde, Nevşehir, Kırşehir)
+  
+  15-) TR72 (Kayseri, Sivas, Yozgat)
+  
+  16-) TR81 (Zonguldak, Karabük, Bartın)
+  
+  17-) TR82 (Kastamonu, Çankırı, Sinop)
+  
+  18-) TR83 (Samsun, Tokat, Çorum, Amasya)
+  
+  19-) TR90 (Trabzon, Ordu, Giresun, Rize, Artvin, Gümüşhane)
+  
+  20-) TRA1 (Erzurum, Erzincan, Bayburt)
+  
+  21-) TRA2 (Ağrı, Kars, Iğdır, Ardahan)
+  
+  22-) TRB1 (Malatya, Elazığ, Bingöl, Tunceli)
+  
+  23-) TRB2 (Van, Muş, Bitlis, Hakkari)
+  
+  24-) TRC1 (Gaziantep, Adıyaman, Kilis)
+  
+  25-) TRC2 (Şanlıurfa, Diyarbakır)
+  
+  26-) TRC3 (Mardin, Batman, Şırnak, Siirt)
+  
+
+```{r}
+yoksulluk_data <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/yoksulluk.xls", sheetIndex=1)
+
+ggplot(yoksulluk_data, aes(Region, Share_of_poor_by_sixty_percent_Median_income)) +
+  geom_bar(stat = "identity", aes(fill = factor(Region)))+
+  facet_wrap(yoksulluk_data$Year)+
+  theme(legend.position = "none",
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())+
+  labs(x="Regions",
+       y="Powerty Rates",
+       fill = "The Regions",
+       title="Powerty rates from 2014 to 2019 in Turkey")
+```
+
+  According to these tables we can say the 1st(İstanbul) and 25th(Şanlıurfa, Diyarbakır) regions have relatively higher rate of poverty.
+
+```{r}
+ggplot(yoksulluk_data, aes(Region, Share_of_poor_by_sixty_percent_Median_income)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.5), aes(fill = factor(Year)), color = factor(yoksulluk_data$Region))+
+  theme(legend.position = "none",
+   axis.ticks.x = element_blank(),
+   axis.text.x = element_blank())+
+  labs(x="Regions",
+       y="Powerty Rates",
+       fill = "The Regions",
+       title="Powerty rates from 2014 to 2019 in Turkey")
+```
+  
+    
+ Apart from some regions generally the poverty rate increased in 2-4 years like until 2018(included), then it decreased a bit.
+
+
+## c-)
+
+
+
+```{r}
+ggplot(yoksulluk_data, aes(Year, Share_of_poor_by_sixty_percent_Median_income)) +
+  geom_boxplot(aes(fill = factor(Year)))+
+  theme(legend.position = "none")+
+  labs(x="Years",
+       y="Powerty Rates",
+       title="Powerty rates from 2014 to 2019 in Turkey")
+```
+
+
+  From these plots we can't see much about poverty because all off them almost the same. Maybe we can look at their outliers or maybe we can look at the 2014 and says in that year poverty has more variance back then.
+
+```{r}
+aclik_siniri_arama <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/aclik_siniri.xlsx", sheetIndex=1)
+
+ggplot(aclik_siniri_arama,aes(factor(year(Zaman)), aclik_siniri))+
+  geom_boxplot(aes(fill=factor(year(Zaman))))+
+  theme(legend.position = "none")+
+  labs(x="Years",y="Search of 'açlık sınırı'",
+       title="Search of  'açlık sınırı' by Years")
+```
+
+
+  'Açlık sınırı' means hunger limit in Turkish and I thought it might have some relation between it and powerty but the tables cannot actually says anything about that relationship. But still with one year delay the search for 'açlık sınırı' actually follows the pattern of outliers in powerty rates.
+  
+  
+  
+```{r}
+yoksulluk_arama <- read.xlsx("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/HW1/yoksullukarama.xlsx", sheetIndex=1)
+
+ggplot(yoksulluk_arama,aes(factor(year(Zaman)), Yoksulluk))+
+  geom_boxplot(aes(fill=factor(year(Zaman))))+
+  theme(legend.position = "none")+
+  labs(x="Years",y="Search of 'yoksulluk'",
+       title="Search of 'yoksulluk' by Years")
+```
+  
+  
+  Again when we look  for the searh of 'yoksulluk' meaning poverty in Turkish in google trends we can't see any real relation but here the search table is following the outliers in the poverty rate box plot.
+  
