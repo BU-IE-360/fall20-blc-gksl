@@ -5,3 +5,7 @@
 
 ## Week 4 (November 20)
 [Here](files/HW1/Goksel-Bilici_HW1.html) is my first homework, which contains 3 data colection and some keyword that might be related to the data collections.
+
+
+## Week 8 (December 17)
+[Here](files/HW2/Goksel-Bilici_HW2.html) is my second homework, which try to find the relation between CPI and Dollar exchange rates, imports.
