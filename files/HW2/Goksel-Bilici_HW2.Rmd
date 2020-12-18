@@ -24,17 +24,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## The Data
 
+  In this homework the first 5 package used to manipulate and visualize data and the last 2 used to find correlation between the parameters.
+  
 ```{r message=FALSE,warning=FALSE}
 
 library("xlsx")
 library("ggplot2")
 library("lubridate")
+library("dplyr")
+library("tidyr")
 library("corrgram")
 library("GGally")
-library("dplyr")
 
 ```
 
+ First the data is taken from xls file and manipulated so that no external variables in the file don't cause any problems.
 
 ```{r message=FALSE,warning=FALSE}
 # import data
@@ -43,17 +47,23 @@ theData <- read.xlsx("D:/MyUbuntu/GitHub/fall20-blc-gksl/files/HW2/CPI_Dollar_Im
 theData <- theData[1:154,1:4]
 ```
 
+ Due to our investigation relying on the local exchange means we used Turkish Liras for all our variables. And taking monthly difference between CPI's.
+
 ```{r message=FALSE, warning=FALSE}
 # Calculate imports in terms of TL
 theData <- theData %>%
-  mutate(Imports = Imports *Dollar)
+  mutate(Imports = Imports *Dollar) %>%
+  mutate(diffCPI = CPI - lag(CPI)) %>%
+  replace_na(list(diffCPI = 0))
 ```
+
+  Now let's look at the our data structure:
 
 ```{r message=FALSE, warning=FALSE}
 # our data structure
 str(theData)
 ```
-
+  Now time to look at the sample data:
 
 ```{r message=FALSE, warning=FALSE}
 head(theData)
@@ -76,6 +86,27 @@ ggplot(theData, aes(Date , CPI))+
         axis.text  =element_text(color = "purple")
   )
 ```
+  
+  As we can see in the graph above as time goes by the citizens of Turkey need to spend more money to get what they need and in a sense because there is some amount of inflation every year that might make sense first but when we look at the graph of increase of CPI below we can say there is an abnormal increase in last 12 years.
+  
++ Due to line graphs are drawn in the similar way, the code of some other graphs are not shown. If reader wants to see them, he/she is kindly asked to check the Rmd file that is placed in appendices. 
+  
+```{r message = FALSE, warning = FALSE,echo=FALSE}
+ggplot(theData, aes(Date , diffCPI))+
+  geom_line(color = "red", size = 0.5)+
+  geom_smooth(method = lm, se = FALSE, color = "#FF00FF", size = 1.5)+
+  scale_y_continuous(breaks = seq(-10, 25, by = 5), name = "CPI Differences")+
+  scale_x_date(date_breaks = "1 year", date_labels =  "%Y")+
+  labs(title = "Increase of CPI from 2008 to 2020",
+       caption = "Source: EVDS")+
+  theme(rect = element_rect(fill = "turquoise"),
+        plot.title = element_text(color = "black", size = 15, face = "bold", hjust = 0.5),
+        axis.text  =element_text(color = "purple")
+  )
+
+```
+  
+
 ```{r message = FALSE, warning = FALSE}
 ggplot(theData, aes(Date , CPI))+
   geom_boxplot(aes(fill= factor(year(Date))))+
@@ -90,6 +121,9 @@ ggplot(theData, aes(Date , CPI))+
   )
 ```
 
+In the box plot of the CPI we can see the results in a yearly basis and when we think about line plot of it too, it is certain that the most increase in CPI is observed in 2018. And that is probably can be explained by [Turkish currency and debt crisis in 2018](https://en.wikipedia.org/wiki/Turkish_currency_and_debt_crisis,_2018).
+
++ Again due to box plot graphs are drawn in the similar way, the code of some other graphs are not shown. If reader wants to see them, he/she is kindly asked to check the Rmd file that is placed in appendices. 
 
 ### USD Exchange Rates
 ```{r message=FALSE,warning=FALSE,echo=FALSE}
@@ -104,6 +138,9 @@ ggplot(theData, aes(Date , Dollar))+
         axis.text  =element_text(color = "brown")
   )
 ```
+
+Dollar exchange rate is almost always increased through 2008 to 2020 but there are some important years like 2008 and 2018 because in these years the exchange rate is not just increased like the other years. In 2008 in the more than first half of the year the exchange rate is almost stable but it increased all of a sudden that is probably because Turkey felt the [great recession](https://en.wikipedia.org/wiki/Great_Recession) a little bit late compared to USA. And in the 2018 as mentioned above [Turkish currency and debt crisis in 2018](https://en.wikipedia.org/wiki/Turkish_currency_and_debt_crisis,_2018) induce higher exchange rate increase. And when wee look at the box plot below we can relate the effects in 2018. And apart from 2008 and 2018 in this year, 2020, too there is a high increase.
+
 ```{r message=FALSE,warning=FALSE,echo=FALSE}
 ggplot(theData, aes(Date , Dollar))+
   geom_boxplot(aes(fill= factor(year(Date))))+
@@ -117,6 +154,7 @@ ggplot(theData, aes(Date , Dollar))+
         axis.text  =element_text(color = "brown")
   )
 ```
+
 
 
 ### Imports
@@ -132,6 +170,9 @@ ggplot(theData, aes(Date , Imports))+
         axis.text  =element_text(color = "red")
   )
 ```
+
+In imports spending there is almost always an increase but when we look closely we realize there is an abnormality in 2008 and 2020 because in the 2008 imports spending decreased due to global issues and in the 2020 imports spending increased in a higher rate an that might be because of corona pandemic and choices towards imported products if it is  not explained by exchagen rates. And we can see these effects may be alittle bit clearly when we look at the below box plot graph.
+
 ```{r message=FALSE,warning=FALSE,echo=FALSE}
 ggplot(theData, aes(Date , Imports))+
   geom_boxplot(aes(fill= factor(year(Date))))+
@@ -147,7 +188,11 @@ ggplot(theData, aes(Date , Imports))+
 ```
 
 
+
 ## Correlation Analysis
+
+After calculations we can see there is a strong relation between CPI and Dollar exchange rates and imports. In the explanation below we can see the relation as a matrix then in a pie graph and then their scatter plots respectively. Comparatively the CPI is more related to Exchange rates then imports according to calculations.
+
 ```{r message = FALSE, warning = FALSE}
 theCorrelation <- cor(theData[,2:4])
 theCorrelation
@@ -171,6 +216,9 @@ ggpairs(theData[,2:4]) +
 ```{r message = FALSE, warning = FALSE}
 cor.test(theData$CPI, theData$Dollar)
 ```
+
+According to Pearson's product-moment correlation CPI and Dollar Exchange rates are highly positively related because both they have high correlation parameter and they have really small p-value. And we also can see that visually in the graph below.
+
 ```{r message = FALSE, warning = FALSE}
 ggplot(theData, aes(Date))+
   geom_line(aes(y = CPI),color = "red", size = 1.2)+
@@ -191,6 +239,9 @@ ggplot(theData, aes(Date))+
 cor.test(theData$CPI, theData$Imports)
 ```
 
+Again we can see correlation test result for CPI and imports rate above and visually below. They seems to have a strong relation.
+
+
 ```{r message=FALSE,warning=FALSE,echo=FALSE}
 ggplot(theData, aes(Date))+
   geom_line(aes(y = CPI),color = "red", size = 1.2)+
@@ -206,6 +257,10 @@ ggplot(theData, aes(Date))+
 ```
 
 # CONCLUSION
+
++ As we thought there is a strong correlation between Dollar exchange rates and CPI. As time progresses both CPI and Dollar increase and we can see that throughout all observed years especially in 2018.
+ 
++ When we investigate the correlation between CPI and imports from the data visualizations, we can clearly see there is a relation but here we just can't say they are that much related(in terms of ratio). Because there are lots of parameters influence the imports and it is beyond our investigation. Another reason is that we use TL for imports because we  want to look at all our data(CPI, Dollar, imports) in terms of local money that is used for trades in daily life, and for that we multiply imports by Dollar, that may not be the correct way because an imported product's  price may not be increased just with Dollar exchange ratio. But overall even if we may not be sure the relation of these two parameters(CPI and imports) is that high due to macro-economic parameters we can conclude that they are related in a noticeably way.
 
 # REFERENCES
 + [Electronic Data Delivery System, Central Bank of Turkey](https://evds2.tcmb.gov.tr/)
