@@ -1,0 +1,762 @@
+---
+title: "Project Report"
+author: "Group 8"
+output: html_document
+---
+
+# **1. Introduction**
+
+>In brief, this report shows how the electricity consumption can be explained by some regressors and how should it be forecasted through ARIMA and linear models. After including and excluding some regressors to explain the electricity consumption best, we have created different models consisting of ARIMA and linear models and changed our regressors. Yet, it has been found out that ARIMA model hasn’t worked well, i.e. this model has forecasted around at same value with higher and lower variances but not enough to catch the seasonality effect, based on the functions we have used for forecasting. Also, working with ARIMA function has taken so long, approximately 1.25 hour for executing the seasonal ARIMA model for just once. Therefore, we have decided to create linear model with almost same regressors that we have used in ARIMA. Lastly, we have chosen the linear model even it has not forecasted at true amounts and high WMAPE value, this is because at least it can catch the seasonality effect by letting the forecasted value to move around the value we have forecasted at the ARIMA model with less execution time.
+
+<p> To begin with, the meaning and the duty of the EPIAS should be clarified. EPIAS is the only institution that regulates the electricity market, and it prevents itself from manipulative and unethical behaviors of self-seeker entities and destabilization of the electricity prices. To organize and prevent unethical behaviors, EPIAS sets some rules to regulate and also provides the real-time electricity consumption amounts in hourly basis for each city with transparency, which prevents the entities from being disinformed and helps the electricity producers to forecast the other day’s electricity consumption, i.e. let electricity demanding entities whether distributor or producer to be kept updated on the latest electricity consumptions, with less error. </p>
+
+<p>Forecasting for the demand data for tomorrow based on the real-time consumption amounts of past has become of more importance for either distributors or producers nowadays due to increasing competitiveness of the electricity market. To maximize the profits that will be gained for the tomorrow’s electricity consumption, the distributor or the producer should declare the maximum amount of price that can be paid in return for a unit of electricity for tomorrow should be declared. Yet, if the prices are not grounded on statistical and analytical basis, it can be frankly declared that the oncoming profits will not be gained. Additionally, not only the consumption amounts of the market but also the condition of the market in near future together with the other agents’ future decisions concerning the market. Therefore, forecasting procedure should be picked over attentively and extensively.</p>
+
+<p>The aim of the study is to forecast the next-day’s hourly consumption values for Turkish electricity market by using the former electricity consumption amounts of Turkey starting from 2017-01-01 together with the temperatures of seven cities. In other words, predictions should be made about the 24 hours’ consumption one-by-one for tomorrow. Former consumption data is taken from an Excel document. The daily data is updated by lecturer and also the updated data is taken from API and used with formerly taken data in R.</p>   
+
+<p>Before creation of the model, we need to describe and visualize the data to mention about its properties so as to decide which things should be taken into consideration before modeling. Let’s examine the data:</p>   
+
+```{r, results='hide', error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = FALSE}
+
+library(lubridate)
+library(readxl)
+library(zoo)
+library(data.table)
+library(urca)
+require(jsonlite)
+require(httr)
+require(dplyr)
+require("fpp")
+require("ggplot2")
+require("forecast")
+require("stats")
+require("xlsx")
+require("lubridate")
+require("readr")
+
+setwd("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/PR")
+rawconsumption <- as.data.table(read_excel("bulk_consumption_with_temp_excel.xlsx"))
+
+colnames(rawconsumption) <- c("event_date", "event_hour", "consumption", 
+                              "t_1","t_2","t_3","t_4","t_5","t_6","t_7")
+```
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+ggplot(rawconsumption, aes(x=rawconsumption$event_date, y=rawconsumption$consumption)) +
+  geom_line(size = 0.6, color="darkred", alpha = 0.5) + 
+  geom_point(size = 0.2, color="green", alpha = 0.5) +
+  labs(title = "Hourly Electricity Consumption from 2017-01-01 to 2021-01-01", 
+       x = "Date",y = "Amount of Electricity(mWh)") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  theme_classic()
+
+```
+
+
+<p>When the hourly consumption data is considered, the wave-like shape can be detected easily, which means that seasonality exist clearly at the data. Likewise, the seasonality’s existence can be checked also by the period of increases and decreases are similar for each year. Moreover, it can be found out that without difficulty that the consumption of the electricity has 24-hour basis as minimum repetitive units and seasons and years as maximum repetitive units, indicating the seasonality again. </p>   
+
+<p>Further, when the jumps and downs of consumption are examined, it can easily be concluded that the last year, between 2020 and 2021, is different from the former years, owing to the Covid-19 epidemic and obligatory lockdowns causing to consume higher electricity than before as well as having online courses for each student starting from at the age of 7 to at 23, which is one of the great effects for increases in the electricity consumption especially for a country like Turkey having young population at high ratio in its total population.</p> 
+
+<p> More, Islamic religion includes two religious feasts, which are Ramadan and Sacrifice, i.e. Eid Qurban, provoking 2 great decreases in consumption for each year with same gaps, 11 days. To clarify, these religious feasts induce the electricity to be consumed less than expected having same gaps between these 2 great decreases, as it can be seen. </p> 
+
+<p> When it comes to stationarity condition, it can easily be said that the consumption data is not stationary due to having obvious seasonality effect. Moreover, variance of the consumption at the last year is higher than former years. Therefore, it can easily be argued that stationarity condition is not satisfied due to seasonality at first sight along with a great change of the variance between 2020 and 2021.</p>
+
+
+# **2. Related Literature**
+
+<p>There are many studies in the literature on electricity energy consumption estimation. In these studies, it is possible to find neural networks, econometric models, genetic algorithm, regression models, grey models, ARIMA models for different places/countries. Egelioglu and his study partners used multiple regression models to examine the relationship between energy consumption with the price of electricity, the number of customers and the number of tourists is determined in Northern Cyprus. Tso and Yau examined and compared the accuracy of regression models, decision trees, and neural networks in forecasting electricity energy consumption for Hong Kong. Al-Ghandoor and his partners developed an empirical multivariate regression model to forecast the electricity requirement of Jordan’s industry. Furthermore, ARIMA and GM models were used to forecast primary energy consumption of PCR in Yuan's research. Lee and Tong predicted consumption of energy by using a genetic programming model which uses a genetic algorithm. We can diversify these studies. </p> 
+
+<p>On the other hand, some researchers also studied estimation of Turkey's energy consumption. Yumurtaci and Asmaz are among these researchers. In their study, the energy use projection of Turkey for the period of 1980–2050 was calculated based on the population increase and energy consumption increase rates per capita. Their study also included the evaluation of energy requirement in the year 2050 in the case of whole hydro-energy potential usage. Electricity consumption estimation of Turkey was an important issue for researchers working in Turkey and there are many studies have been published using similar or different methods. </p>
+
+<p> In this study, apart from course resources, internet resources about ARIMA models, use of regressors in ARIMA models, creation of linear regression models were searched. Sources like STHDA, Stackoverflow are specified in the references section at the end. </p>
+
+
+# **3. Approach**
+
+
+<p>In this study, different modeling and forecasting approaches are used. Important ones are described below: </p>
+
+### Naive Forecasting
+
+<p>Naive method is an estimating technique in which the last period's actual values are used as new period's forecast, without adjusting them or attempting to establish causal factors. Naive is the simplest method that can be used for estimating electricity consumption. But it is used generally for comparison with the forecasts generated by the better, sophisticated techniques. Sometimes it can be surprisingly effective. </p>
+
+### Moving Average
+
+<p>Moving average is an estimating technique in which the overall idea is to be able to use the trends in the data. Moving average can be described as a very useful method for forecasting long-term trends. It can be calculated for any period of time. Basically, it is the estimate of the trend-cycle at time t which is taken by averaging values of the time series within k periods of  t. Observations that are close in time are also likely to be close in value. Hence, the average value excludes the randomness in the data and creates a smooth trend-cycle component. The result is obtained by this m-MA which means a moving average of order m. </p>
+
+### Linear Regression
+
+<p>Linear regression is a technique for estimating which creates a linear relationship between the value that will be predicted (y) and the predictor variables (x, may be more than one). The variable that will be predicted y can also be called as the regressand, or dependent variable. The predictor variables x can also be called the regressors, or independent variables. For instance, we can forecast the electricity consumption/demand y by using temperature x1, the day of the week x2, and the month of the year x3 as regressors. </p>
+
+### Autoregression
+
+<p>Autoregression is a regression model such as linear regression. The difference is that autoregression models an output variable based on a linear combination of input variables that are taken as observations at previous time steps, called lag variables. For example, we can estimate the value of consumption for the next time step (t+1) by using the observations at the last three time steps (t-1, t-2 and t-3). </p>
+
+<p>For autoregression, there are some assumptions that are made before building the autoregression model. First assumption is that the previous time steps are useful in predicting the value at the next time steps. Second one is that data is stationary. A constant variance over time is needed for stationarity. If data is not stationary, some manipulations can be done to make it stationary and make the model work better. </p>
+
+### ARIMA
+
+<p>ARIMA means auto-regressive integrated moving average and can be seen in a lot of business applications such as sales and marketing predictions. The main steps are listed below:
+    
+        -Load R Packages
+        -Examine Your Data
+        -Decompose Your Data
+        -Stationarity Check
+        -Autocorrelations and Choosing Model Order
+        -Fitting an ARIMA model
+        -Evaluation and Iteration
+        
+After all is completed, improvements can be made.</p>
+
+<p>ARIMA models provide a different approach to forecasting with time series. It can be seen that ARIMA models are most widely used in time series forecasting. AR(p) refers to autoregressive model of order p. MA(q) refers to the moving average model of order q. ARMA(p,q) model refers to a model with p autoregressive terms and q moving average terms. AR(p), MA(q) and ARMA(p,q) models can be applied to stationary variables. When data is non-stationary, differencing should be applied and the model becomes ARIMA. ARIMA (p,d,q) is the model where p is the order of autoregression, q is the order of moving average and d is the degree of differencing.</p>
+
+<p>ARIMA models can also include seasonality in it. They are capable of modelling a wide range of data which is seasonal. It can be done by adding additional seasonal terms to the model. There should be a non-seasonal part of the model and a seasonal part of the model. </p>
+
+
+### Implementation & Explanation
+
+First the needed code inserted that is given by instructor so that the function and libraries are added.
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+library(lubridate)
+library(readxl)
+library(zoo)
+library(data.table)
+library(urca)
+require(jsonlite)
+require(httr)
+require(dplyr)
+require("fpp")
+require("ggplot2")
+require("forecast")
+require("stats")
+require("xlsx")
+require("lubridate")
+require("readr")
+
+get_token <- function(username, password, url_site){
+  
+  post_body = list(username=username,password=password)
+  post_url_string = paste0(url_site,'/token/')
+  result = POST(post_url_string, body = post_body)
+  
+  # error handling (wrong credentials)
+  if(result$status_code==400){
+    print('Check your credentials')
+    return(0)
+  }
+  else if (result$status_code==201){
+    output = content(result)
+    token = output$key
+  }
+  
+  return(token)
+}
+
+get_data <- function(start_date='2020-03-20', token, url_site){
+  
+  post_body = list(start_date=start_date,username=username,password=password)
+  post_url_string = paste0(url_site,'/dataset/')
+  
+  header = add_headers(c(Authorization=paste('Token',token,sep=' ')))
+  result = GET(post_url_string, header, body = post_body)
+  output = content(result)
+  data = data.table::rbindlist(output)
+  data[,event_date:=as.Date(event_date)]
+  data = data[order(event_date)]
+  return(data)
+}
+
+
+send_submission <- function(predictions, token, url_site, submit_now=F){
+  
+  format_check=check_format(predictions)
+  if(!format_check){
+    return(FALSE)
+  }
+  
+  post_string="list("
+  for(i in 1:nrow(predictions)){
+    if(i<nrow(predictions)){
+      post_string=sprintf("%s%s,",post_string,predictions$forecast[i])
+    } else {
+      post_string=sprintf("%s%s)",post_string,predictions$forecast[i])
+    }
+  }
+  
+  submission = eval(parse(text=post_string))
+  json_body = jsonlite::toJSON(submission, auto_unbox = TRUE)
+  submission=list(submission=json_body)
+  
+  print(submission)
+  # {"31515569":2.4,"32939029":2.4,"4066298":2.4,"6676673":2.4,"7061886":2.4,"85004":2.4} 
+  
+  if(!submit_now){
+    print("You did not submit.")
+    return(FALSE)      
+  }
+  
+  
+  header = add_headers(c(Authorization=paste('Token',token,sep=' ')))
+  post_url_string = paste0(url_site,'/submission/')
+  result = POST(post_url_string, header, body=submission)
+  
+  if (result$status_code==201){
+    print("Successfully submitted. Below you can see the details of your submission")
+  } else {
+    print("Could not submit. Please check the error message below, contact the assistant if needed.")
+  }
+  
+  print(content(result))
+  
+}
+
+check_format <- function(predictions){
+  
+  if(is.data.frame(predictions) | is.data.frame(predictions)){
+    if('forecast' %in% names(predictions)){
+      if(nrow(predictions)==24){
+        if(all(is.numeric(predictions$forecast))){
+          print("Format OK")
+          return(TRUE)
+        } else {
+          print("forecast information is not numeric")
+          return(FALSE)                
+        }
+      } else {
+        print("Forecasts for 24 hours should be provided, current number of rows:")
+        print(nrow(predictions))
+        return(FALSE)     
+      }
+    } 
+  } else {
+    print("Wrong format. Please provide data.frame or data.table object")
+    return(FALSE)
+  }
+  
+}
+
+# this part is main code
+subm_url = 'http://46.101.124.77'
+
+u_name = "Group8"
+p_word = "ULjl3glhlb2hnFly"
+submit_now = FALSE
+
+username = u_name
+password = p_word
+
+token = get_token(username=u_name, password=p_word, url=subm_url)
+data = get_data(token=token,url=subm_url)
+```
+
+
+
+Now the root directory added and after that the data taken from local directory as an excel file. And the data converted to a 'data.table' structure and assigned to 'rawconsumption' variable. And the columns are named in a way that it will be understood easily. The columns represent the date, hour, consumption and consumption regions respectively.
+
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+setwd("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/PR")
+rawconsumption <- as.data.table(read_excel("bulk_consumption_with_temp_excel.xlsx"))
+
+colnames(rawconsumption) <- c("event_date", "event_hour", "consumption", 
+                              "t_1","t_2","t_3","t_4","t_5","t_6","t_7")
+
+```
+
+
+To understand and evaluate the data in a smooth way, the time and date columns are redefined as date and  hour. Then the data that in our local files and the data taken from server are merged.
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+rawconsumption$event_date <- as.Date(rawconsumption$event_date)
+rawconsumption$event_hour <- as.integer(rawconsumption$event_hour)
+
+rawconsumption <- rbind(rawconsumption,data)
+rawconsumption=rawconsumption[order(event_date,event_hour)]
+
+head(rawconsumption)
+tail(rawconsumption)
+```
+
+From time series perspective, it is likely for the data to have a trend. However, it is not always the case. But overall to investigate the effect of a possible trend, a 'trend' column added to the data as integer. After that the data's head and tail is observed. In case if the reader wants, he/she can view all the data as a table.
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+rawconsumption[, trend:=c(1:.N)]
+
+#View(rawconsumption)
+```
+<p>When the amount of electricity consumption is considered, it is only natural to say there could be daily differences. Since it is expected there will be more consumption in the weekdays than in the weekends, due to working environment consuption etc. as an example. Therefore, a 'doy' variable added to the data.table() as a string to be investigated in the next steps.</p>
+
+<p>For the time series data, another possible indicator is the weekly information. For that effect, a 'woy' column created for the weeks. Every week has a unique integer as a parameter. These parameters are created in a linear way and as time advances the code below should be updated. Because 'woy' defined in a way that as the more data added, it gets new value for the new data. As seen below the 'woy' has a 168 time period which come from daily 24 entries for 7 days.</p>
+
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#day controller
+rawconsumption[,doy:=weekdays(event_date)]
+#week controller
+whichweek<-rep(1:215, each = 168)
+asd <-rep(216,48)
+rawconsumption[,woy:=c(whichweek,asd)]
+```
+
+
+<p>In 2020, there was a case that effect whole world and changes almost all human interactions and their daily life, corona virus. And it is not over yet currently. That virus also has some effect on the electrical consumption. For example, some office workers work no more in their office but in their home, and examples for increased electricity consumption can be increased together with reasons given at the introduction part. So, one variable created as a factor so that the data behaviour observed under the corona cases. This variable keeps track of the corona, if corona exists in the country it is positive, otherwise it is negative.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#first corona case in turkey
+rawconsumption[event_date < "2020-03-15", firstcase:=0]
+rawconsumption[event_date >= "2020-03-15", firstcase:=1]
+rawconsumption$firstcase <- as.factor(rawconsumption$firstcase)
+
+```
+
+<p>After coronavirus start to expand in Turkey, government decided to impose curfew to slow spread of the disease. That is why, people have to stay at their homes more and that lead to changes in the electric consumption of both public places and homes. Therefore, it is considered as a good approach to add a variable that keeps track of hours/days that curfew imposed, so the 'restriction' variable is created as a factor.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#sokaga çikma restrictions in turkey
+rawconsumption[, restriction:=0]
+rawconsumption[event_date == "2020-04-11", restriction:=1]
+rawconsumption[event_date == "2020-04-12", restriction:=1]
+rawconsumption[event_date > "2020-04-12" & event_date < "2020-06-01" & (doy=="Saturday" | doy=="Sunday"), 
+               restriction:=1]
+rawconsumption[event_date >= "2020-11-20" & event_hour > 20 & doy == "Friday", restriction:=1]
+rawconsumption[event_date >= "2020-11-20" & (event_hour > 16 | event_hour < 9) & (doy=="Saturday" | doy=="Sunday"), 
+               restriction:=1]
+rawconsumption[event_date >= "2020-11-20" & event_hour < 5 & doy == "Monday", restriction:=1]
+rawconsumption[event_date >= "2020-12-05" & (doy=="Saturday" | doy=="Sunday"), 
+               restriction:=1]
+
+rawconsumption$restriction <- as.factor(rawconsumption$restriction)
+```
+<p>In Turkey more than 95 percent of the population is [muslim](https://en.wikipedia.org/wiki/Islam_in_Turkey). For that reason, there are religious holidays like "Feast of Sacrifice" and "Feast of Ramadan" in Turkey and these are celebrated by almost all of the people in Turkey. In these days, people generally don't work making a huge effect on the electricity consumption as the factory-like industrial elements don't operate or operate less than normal. So, to observe the religious days' effects on the consumption and to observe how religious holidays effect every each day of the week, seven variables are created as factors to keep track of the religious holidays effect.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#define religious variables
+rawconsumption[, dinipazartesi:=0]
+rawconsumption[, dinisali:=0]
+rawconsumption[, dinicarsamba:=0]
+rawconsumption[, dinipersembe:=0]
+rawconsumption[, dinicuma:=0]
+rawconsumption[, dinicumartesi:=0]
+rawconsumption[, dinipazar:=0]
+
+#assign variables values
+rawconsumption[ event_date == "2017-06-25" ,dinipazar := 1]
+rawconsumption[ event_date == "2017-06-26" ,dinipazartesi := 1]
+rawconsumption[ event_date == "2017-06-27" ,dinisali := 1]
+rawconsumption[ event_date == "2017-08-31" ,dinipersembe := 1]
+rawconsumption[ event_date == "2017-09-01" ,dinicuma := 1]
+rawconsumption[ event_date == "2017-09-02" ,dinicumartesi := 1]
+rawconsumption[ event_date == "2017-09-03" ,dinipazar := 1]
+rawconsumption[ event_date == "2017-09-04" ,dinipazartesi := 1]
+rawconsumption[ event_date == "2017-10-29" ,dinipazar := 1]
+rawconsumption[ event_date == "2018-06-14" ,dinipersembe := 1]
+rawconsumption[ event_date == "2018-06-15" ,dinicuma := 1]
+rawconsumption[ event_date == "2018-06-16" ,dinicumartesi := 1]
+rawconsumption[ event_date == "2018-06-17" ,dinipazar := 1]
+rawconsumption[ event_date == "2018-07-15" ,dinipazar := 1]
+rawconsumption[ event_date == "2018-08-20" ,dinipazartesi := 1]
+rawconsumption[ event_date == "2018-08-21" ,dinisali := 1]
+rawconsumption[ event_date == "2018-08-22" ,dinicarsamba:= 1]
+rawconsumption[ event_date == "2018-08-23" ,dinipersembe := 1]
+rawconsumption[ event_date == "2018-08-24" ,dinicuma := 1]
+rawconsumption[ event_date == "2019-06-04" ,dinisali := 1]
+rawconsumption[ event_date == "2019-06-05" ,dinicarsamba := 1]
+rawconsumption[ event_date == "2019-06-06" ,dinipersembe := 1]
+rawconsumption[ event_date == "2019-06-07" ,dinicuma := 1]
+rawconsumption[ event_date == "2019-08-10" ,dinicumartesi := 1]
+rawconsumption[ event_date == "2019-08-11" ,dinipazar := 1]
+rawconsumption[ event_date == "2019-08-12" ,dinipazartesi := 1]
+rawconsumption[ event_date == "2019-08-13" ,dinisali := 1]
+rawconsumption[ event_date == "2019-08-14" ,dinicarsamba := 1]
+rawconsumption[ event_date == "2019-08-30" ,dinicuma := 1]
+rawconsumption[ event_date == "2020-05-23" ,dinicumartesi := 1]
+rawconsumption[ event_date == "2020-05-24" ,dinipazar := 1]
+rawconsumption[ event_date == "2020-05-25" ,dinipazartesi := 1]
+rawconsumption[ event_date == "2020-05-26" ,dinisali := 1]
+rawconsumption[ event_date == "2020-07-30" ,dinipersembe := 1]
+rawconsumption[ event_date == "2020-07-31" ,dinicuma := 1]
+rawconsumption[ event_date == "2020-08-01" ,dinicumartesi := 1]
+rawconsumption[ event_date == "2020-08-02" ,dinipazar := 1]
+rawconsumption[ event_date == "2020-08-03" ,dinipazartesi := 1]
+
+rawconsumption$dinipazartesi <- as.factor(rawconsumption$dinipazartesi)
+rawconsumption$dinisali <- as.factor(rawconsumption$dinisali)
+rawconsumption$dinicarsamba <- as.factor(rawconsumption$dinicarsamba)
+rawconsumption$dinipersembe <- as.factor(rawconsumption$dinipersembe)
+rawconsumption$dinicuma <- as.factor(rawconsumption$dinicuma)
+rawconsumption$dinicumartesi <- as.factor(rawconsumption$dinicumartesi)
+rawconsumption$dinipazar <- as.factor(rawconsumption$dinipazar)
+
+```
+
+<p>Like most of the countries in the world, Turkey ,too, celebrates republic day, victory day etc. alike national holidays regarding itself. So, these days are national holidays and in these days facilities may not work or people working on the facilities may go outside to picnic and these activities probably change regular consumption of electricity. Yet, it doesn't mean that the electricity consumption is going to fall than the expected in every area using electricity, i.e. some of the institutions' electricity consumption may increase on the contrary. So, for every day of a week is defined as a factor and the intention from these factors is to analyze whether these days have statistically significant effects on the consumption behavior or not.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# Special days of Turkey
+rawconsumption[, ozelpazartesi:=0]
+rawconsumption[, ozelsali:=0]
+rawconsumption[, ozelcarsamba:=0]
+rawconsumption[, ozelpersembe:=0]
+rawconsumption[, ozelcuma:=0]
+rawconsumption[, ozelcumartesi:=0]
+rawconsumption[, ozelpazar:=0]
+
+# assign variables values
+rawconsumption[ event_date == "2017-01-01" ,ozelpazar := 1]
+rawconsumption[ event_date == "2017-04-23" ,ozelpazar := 1]
+rawconsumption[ event_date == "2017-05-01" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2017-05-19" ,ozelcuma := 1]
+rawconsumption[ event_date == "2017-06-24" ,ozelcumartesi := 1]
+rawconsumption[ event_date == "2017-07-15" ,ozelcumartesi := 1]
+rawconsumption[ event_date == "2017-08-30" ,ozelcarsamba := 1]
+rawconsumption[ event_date == "2017-12-31" ,ozelpazar := 1]
+rawconsumption[ event_date == "2018-01-01" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2018-04-23" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2018-05-01" ,ozelsali := 1]
+rawconsumption[ event_date == "2018-05-19" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2018-08-30" ,ozelpersembe := 1]
+rawconsumption[ event_date == "2018-10-29" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2018-12-31" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2019-01-01" ,ozelsali := 1]
+rawconsumption[ event_date == "2019-04-23" ,ozelsali := 1]
+rawconsumption[ event_date == "2019-05-01" ,ozelcarsamba := 1]
+rawconsumption[ event_date == "2019-05-19" ,ozelpazar := 1]
+rawconsumption[ event_date == "2019-07-15" ,ozelpazartesi := 1]
+rawconsumption[ event_date == "2019-10-29" ,ozelsali := 1]
+rawconsumption[ event_date == "2019-12-31" ,ozelsali := 1]
+rawconsumption[ event_date == "2020-01-01" ,ozelcarsamba  := 1]
+rawconsumption[ event_date == "2020-04-23" ,ozelpersembe := 1]
+rawconsumption[ event_date == "2020-05-01" ,ozelcuma := 1]
+rawconsumption[ event_date == "2020-05-19" ,ozelsali := 1]
+rawconsumption[ event_date == "2020-07-15" ,ozelcarsamba := 1]
+rawconsumption[ event_date == "2020-08-30" ,ozelpazar := 1]
+rawconsumption[ event_date == "2020-10-29" ,ozelpersembe := 1]
+rawconsumption[ event_date == "2020-12-31" ,ozelpersembe := 1]
+
+rawconsumption$ozelpazartesi <- as.factor(rawconsumption$ozelpazartesi)
+rawconsumption$ozelsali <- as.factor(rawconsumption$ozelsali)
+rawconsumption$ozelcarsamba <- as.factor(rawconsumption$ozelcarsamba)
+rawconsumption$ozelpersembe <- as.factor(rawconsumption$ozelpersembe)
+rawconsumption$ozelcuma <- as.factor(rawconsumption$ozelcuma)
+rawconsumption$ozelcumartesi <- as.factor(rawconsumption$ozelcumartesi)
+rawconsumption$ozelpazar <- as.factor(rawconsumption$ozelpazar)
+
+```
+
+<p>Statistically speaking, when there is a certain pattern for certain hours or days or weeks, in terms of being higher or lower than mean consumption may give important insight to analyze the data. Therefore, a 'mean' column created as a factor and when the values are below mean the 'mean' column takes zero, meaning false, value and in the opposite case it takes value as one, meaning true.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+rawconsumption[consumption < mean(consumption), mean:=0]
+rawconsumption[consumption >= mean(consumption), mean:=1]
+
+rawconsumption$mean <- as.factor(rawconsumption$mean)
+
+```
+
+<p> When the data is analyzed, it is important to see where the extreme values are and when these extreme values have happened. Since, when these values are identified, it is possible to realize a pattern between them and  apply that pattern to forecast the data more precisely. For that reason, some quantiles 5th, 10th, 25th, 75th, 90th, and 95th, are created as a variable and added to the data table as factor. Here it is important to realize that when quantiles created below 50% and when value of the data below the quantile value, the factor is 1 otherwise zero. But when quantiles created above 50% and when value of the data above the quantile value, the factor is 1 otherwise zero. It is expected especially the quantile 5th and quantile 95th have important effects on the data.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# create quantiles
+rawconsumption[consumption <= quantile(consumption,0.05), quant5:=1]
+rawconsumption[consumption > quantile(consumption,0.05), quant5:=0]
+
+rawconsumption[consumption < quantile(consumption,0.1), quant10:=1]
+rawconsumption[consumption >= quantile(consumption,0.1), quant10:=0]
+
+rawconsumption[consumption <= quantile(consumption,0.25), quant25:=1]
+rawconsumption[consumption > quantile(consumption,0.25), quant25:=0]
+
+rawconsumption[consumption < quantile(consumption,0.75), quant75:=0]
+rawconsumption[consumption >= quantile(consumption,0.75), quant75:=1]
+
+rawconsumption[consumption < quantile(consumption,0.9), quant90:=0]
+rawconsumption[consumption >= quantile(consumption,0.9), quant90:=1]
+
+rawconsumption[consumption < quantile(consumption,0.95), quant95:=0]
+rawconsumption[consumption >= quantile(consumption,0.95), quant95:=1]
+
+rawconsumption$quant5 <- as.factor(rawconsumption$quant5)
+rawconsumption$quant95 <- as.factor(rawconsumption$quant10)
+rawconsumption$quant25 <- as.factor(rawconsumption$quant25)
+rawconsumption$quant75 <- as.factor(rawconsumption$quant75)
+rawconsumption$quant95 <- as.factor(rawconsumption$quant90)
+rawconsumption$quant95 <- as.factor(rawconsumption$quant95)
+
+```
+
+<p> In the world of work, weekdays and weekends have never been the same. Moreover, electricity consumption follow that rule, too, as it is related to the business/industry environments. Also, between weekdays and weekends too, there might be some difference in terms of consumption. Taking these into consideration, seven variables are created as factors to investigate the pattern between days in a week and make more accurate forecasts.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# create variable for every day of week as a factor
+rawconsumption[,number_doy1:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 1,number_doy1:= as.factor(1)]
+rawconsumption[,number_doy2:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 2,number_doy2:= as.factor(1)]
+rawconsumption[,number_doy3:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 3,number_doy3:= as.factor(1)]
+rawconsumption[,number_doy4:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 4,number_doy4:= as.factor(1)]
+rawconsumption[,number_doy5:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 5,number_doy5:= as.factor(1)]
+rawconsumption[,number_doy6:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 6,number_doy6:= as.factor(1)]
+rawconsumption[,number_doy7:= as.factor(0)]
+rawconsumption[rawconsumption$event_date %>% wday == 7,number_doy7:= as.factor(1)]
+
+```
+
+<p> Around the world, [a person sleeps six and a half hour in a day on the average](https://www.huffpost.com/entry/average-daily-nightly-sleep-country-world_n_3805886) and again [a person works 8 to 9 hours in a day on the average](https://en.wikipedia.org/wiki/Working_time) which probably affects their use of electricity crucially. To understand these hourly effects and analyze, every hour as a variable is added to the data table as a factor. If the data hour is decided hour for the variable the factor is one, otherwise zero. After the analysis, what is expected is the consumption to be much less in the hours when people generally sleep than working hours. </p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# create variables for every hour in a day
+rawconsumption[,number_hour0:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 0, number_hour0:= as.factor(1)]
+rawconsumption[,number_hour1:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 1, number_hour1:= as.factor(1)]
+rawconsumption[,number_hour2:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 2, number_hour2:= as.factor(1)]
+rawconsumption[,number_hour3:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 3, number_hour3:= as.factor(1)]
+rawconsumption[,number_hour4:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 4, number_hour4:= as.factor(1)]
+rawconsumption[,number_hour5:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 5, number_hour5:= as.factor(1)]
+rawconsumption[,number_hour6:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 6, number_hour6:= as.factor(1)]
+rawconsumption[,number_hour7:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 7, number_hour7:= as.factor(1)]
+rawconsumption[,number_hour8:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 8, number_hour8:= as.factor(1)]
+rawconsumption[,number_hour9:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 9, number_hour9:= as.factor(1)]
+rawconsumption[,number_hour10:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 10, number_hour10:= as.factor(1)]
+rawconsumption[,number_hour11:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 11, number_hour11:= as.factor(1)]
+rawconsumption[,number_hour12:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 12, number_hour12:= as.factor(1)]
+rawconsumption[,number_hour13:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 13, number_hour13:= as.factor(1)]
+rawconsumption[,number_hour14:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 14, number_hour14:= as.factor(1)]
+rawconsumption[,number_hour15:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 15, number_hour15:= as.factor(1)]
+rawconsumption[,number_hour16:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 16, number_hour16:= as.factor(1)]
+rawconsumption[,number_hour17:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 17, number_hour17:= as.factor(1)]
+rawconsumption[,number_hour18:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 18, number_hour18:= as.factor(1)]
+rawconsumption[,number_hour19:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 19, number_hour19:= as.factor(1)]
+rawconsumption[,number_hour20:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 20, number_hour20:= as.factor(1)]
+rawconsumption[,number_hour21:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 21, number_hour21:= as.factor(1)]
+rawconsumption[,number_hour22:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 22, number_hour22:= as.factor(1)]
+rawconsumption[,number_hour23:= as.factor(0)]
+rawconsumption[rawconsumption$event_hour == 23, number_hour23:= as.factor(1)]
+
+```
+
+<p> To interpret if there is an important effect of months and years on the consumption data, it is thought that it would be a good way to add 'Month' and 'Year' variables as factors into the data table and see effect of them on the data. The factors are added so that it can represent exact month and year in the variable. For example, the month March is added as a factor '3'.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#create month and year indexes
+rawconsumption[,Month:=as.factor(month(event_date))]
+rawconsumption[,Year:=as.factor(year(event_date))]
+
+head(rawconsumption)
+tail(rawconsumption)
+```
+
+<p>Before we start creating a linear model, we have tried to do seasonal ARIMA model. This model is (24,1,2) and seasonal term is (0,0,1). As you can imagine, when these ARIMA terms are used with such huge data, not huge indeed but it is so huge for commercial-use PC’s, it takes so long to execute just creation of the model, like 1.25 hours. Why the execution time took so long is because we have tried to add exogenous variables, i.e. external variables rather than AR-I-MA is consisted. Actually, exogenous variables are the same variables with the regressors we have used in linear models.</p> 
+
+<p>After executing our ARIMA model for an hour and half, we have decided to consult TA for the third time, first two of the consultation were to find the problem we had gotten for forecast() function and some critical point about data manipulation, and tried to find the ways out about the model. Then, even we have such satisfactory WMAPE value, we decided to finish our business with ARIMA modeling and get better WMAPE value with linear model, in less execution time, in fact. If a reader wants to know what exogenous regressors, then he/she can delete the “#” sign and get the regressors we have commonly used in our linear model:</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#xreg <- cbind( 
+#trend = rawconsumption$trend, 
+#quant5=as.factor(rawconsumption$quant5), 
+#quant95=as.factor(rawconsumption$quant95), 
+#quant25=as.factor(rawconsumption$quant25),
+#quant75=as.factor(rawconsumption$quant75), 
+#woy=as.factor(rawconsumption$woy), 
+#mean=as.factor(rawconsumption$mean), 
+#firstcase=as.factor(rawconsumption$firstcase),
+#dinipazartesi=as.factor(rawconsumption$dinipazartesi), #dinisali=as.factor(rawconsumption$dinisali), #dinicarsamba=as.factor(rawconsumption$dinicarsamba), #dinipersembe=as.factor(rawconsumption$dinipersembe), #dinicuma=as.factor(rawconsumption$dinicuma), #dinicumartesi=as.factor(rawconsumption$dinicumartesi), #dinipazar=as.factor(rawconsumption$dinipazar), #ozelpazartesi=as.factor(rawconsumption$ozelpazartesi), #ozelsali=as.factor(rawconsumption$ozelsali), #ozelcarsamba=as.factor(rawconsumption$ozelcarsamba), #ozelpersembe=as.factor(rawconsumption$ozelpersembe), #ozelcuma=as.factor(rawconsumption$ozelcuma), #ozelcumartesi=as.factor(rawconsumption$ozelcumartesi), #ozelpazar=as.factor(rawconsumption$ozelpazar), 
+#t_1 = rawconsumption$t_1, 
+#t_2 = rawconsumption$t_2, 
+#t_3 = rawconsumption$t_3, 
+#t_4 = rawconsumption$t_4,
+#t_5 = rawconsumption$t_5, 
+#t_6 = rawconsumption$t_6,
+#t_7 = rawconsumption$t_7,
+#differenceweek = rawconsumption$differenceweek, 
+#differenceday = rawconsumption$differenceday,
+#number_doy1=as.factor(rawconsumption$number_doy1), #number_doy2=as.factor(rawconsumption$number_doy2), #number_doy3=as.factor(rawconsumption$number_doy3),
+#number_doy4=as.factor(rawconsumption$number_doy4), #number_doy5=as.factor(rawconsumption$number_doy5),
+#number_doy6=as.factor(rawconsumption$number_doy6),
+#number_doy7=as.factor(rawconsumption$number_doy7),
+#number_hour0=as.factor(rawconsumption$number_hour0),
+#number_hour1=as.factor(rawconsumption$number_hour1),
+#number_hour2=as.factor(rawconsumption$number_hour2), 
+#number_hour3=as.factor(rawconsumption$number_hour3),
+#number_hour4=as.factor(rawconsumption$number_hour4),
+#number_hour5=as.factor(rawconsumption$number_hour5),
+#number_hour6=as.factor(rawconsumption$number_hour6),
+#number_hour7=as.factor(rawconsumption$number_hour7),
+#number_hour8=as.factor(rawconsumption$number_hour8),
+#number_hour9=as.factor(rawconsumption$number_hour9),
+#number_hour10=as.factor(rawconsumption$number_hour10),
+#number_hour11=as.factor(rawconsumption$number_hour11),
+#number_hour12=as.factor(rawconsumption$number_hour12),
+#number_hour13=as.factor(rawconsumption$number_hour13),
+#number_hour14=as.factor(rawconsumption$number_hour14),
+#number_hour15=as.factor(rawconsumption$number_hour15),
+#number_hour16=as.factor(rawconsumption$number_hour16),
+#number_hour17=as.factor(rawconsumption$number_hour17),
+#number_hour18=as.factor(rawconsumption$number_hour18),
+#number_hour19=as.factor(rawconsumption$number_hour19),
+#number_hour20=as.factor(rawconsumption$number_hour20),
+#number_hour21=as.factor(rawconsumption$number_hour21),
+#number_hour22=as.factor(rawconsumption$number_hour22),
+#number_hour23=as.factor(rawconsumption$number_hour23)
+
+```
+
+<p> Test and train data were created to make the estimation. Train data is updated version of "rawconsumption". Test data is named "test" and includes the last two days of the data where consumption values are currently -1. Tails of these two data are printed to see in more detail. </p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# decide which data is test data, which not?
+test <- rawconsumption[event_date>"2021-02-13"]
+rawconsumption <- rawconsumption[event_date<="2021-02-13"]
+
+tail(test)
+tail(rawconsumption)
+```
+
+<p> In order to apply "fitted" function, the values that are -1 have been replaced with the values of the same day of the previous week. Since consumption values were -1, the quantiles shows wrong values for the model. They are also needed to be updated. It is also done by replacing with the values of the same day of the previous week. After that, test data and train data are combined to be able to use the "fitted" function and get the predictions. </p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+#test data update?
+test$consumption <- rawconsumption$consumption[35953:36000]
+test$quant5 <- rawconsumption$quant5[35953:36000]
+test$quant25 <- rawconsumption$quant25[35953:36000]
+test$quant75 <- rawconsumption$quant75[35953:36000]
+test$quant95 <- rawconsumption$quant95[35953:36000]
+rawconsumption <- rbind(rawconsumption, test)
+```
+
+<p> As it is done above, the same method should be applied to "differenceweek" and "differenceday" columns. </p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# difference update?
+rawconsumption[,differenceweek:=rawconsumption$consumption-shift(rawconsumption$consumption,168)]
+rawconsumption[,differenceday:=rawconsumption$consumption-shift(rawconsumption$consumption,24)]
+```
+
+<p> Now, to analyze the data in a proper way, the 'NA' valued data parts are removed, also meaningful and complete part of the data is taken.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# remove NA's
+rawconsumption <- rawconsumption[complete.cases(rawconsumption)]
+```
+
+<p> Until now a lot of variables are defined. Now, with linear regression analysis, these variables are interpreted. In order to have the most suitable and effective variables in the model,  several trials have been done and the model that will be used in the forecast is finally created. With that method, it is aimed to get the best model for the predictions. Also, after running code below, the reader will see each effective variables' influence on the data.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# after multiple trials, this is the decided as best model
+cons <- rawconsumption$consumption
+modelbest2 <- lm(cons ~ number_doy1+number_doy2+number_doy3+number_doy4+number_doy5+number_doy6+
+                   number_hour0+number_hour1+number_hour2+number_hour3+number_hour4+number_hour5+number_hour6+number_hour7+
+                   number_hour8+number_hour9+number_hour10+number_hour11+number_hour12+number_hour13+number_hour14+
+                   number_hour15+number_hour16+number_hour17+number_hour18+number_hour19+number_hour20+number_hour21+
+                   number_hour22+quant5+quant95+quant25+quant75+mean+restriction+trend+
+                   t_1+t_2+t_5+t_6+t_7+ozelpazartesi+ozelsali+ozelcarsamba+ozelpersembe+ozelcuma+
+                   dinipazartesi+dinisali+dinicarsamba+dinipersembe+dinicuma+dinicumartesi+dinipazar+Month+Year+differenceday+differenceweek, data=rawconsumption)
+# observe the model
+summary(modelbest2)
+```
+
+<p> Now, the model to proceed is created and decided, it is the time to make predictions. Prediction is done by function 'fitted' and to make easier to read these fitted prediction, a 'fitted' column created in the data table and fitted values assigned to that column. To observe last operation more easily it is kindly requested from reader to uncomment 'View(rawconsumption)' and to examine the data overall. </p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# forecast by model
+rawconsumption[, fitted:=fitted(modelbest2)]
+
+tail(rawconsumption)
+#View(rawconsumption)
+```
+
+# Results
+
+<p> After all, the forecast and current electricity data is taken and compared. To do that more practically, an output function is created. This function calculates and returns the actual data length, the mean error between actual and forecasted data, standard deviation of actual data, ratio of error over actual data, mean absolute percentage error, mean absolute deviation, and ratio of mean absolute deviation over mean absolute percentage error. </p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+# investigating forecast and its correctness
+output <- function(actual, forecasted){
+  n=length(actual)
+  error = actual-forecasted
+  mean=mean(actual)
+  sd=sd(actual)
+  bias = sum(error)/sum(actual)
+  mape = sum(abs(error/actual))/n
+  mad = sum(abs(error))/n
+  wmape = mad/mean
+  l = data.frame(n,mean,sd,bias,mape,mad,wmape)
+  return(l)
+}
+
+output(rawconsumption$consumption, rawconsumption$fitted)
+```
+
+<p> TWo of the most common metrics used to measure the forecasting accuracy of a model are MAPE and WMAPE, which refer to mean absolute percentage error and weighted mean absolute percentage error. The perfect value for WMAPE may depend on what type of estimation we make. [Generally, MAPE/WMAPE value which is lower than 0.1 can be counted as a good estimate.](https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781119199885.app1) As a result of this study, a WMAPE value of around 0.02558536 was obtained, it can be said that the study became successful.</p>
+
+<p> Now, the comparison of actual values and predicted values for whole data can be seen more easily in the graph below.</p>
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+a <- ggplot(rawconsumption, aes(x=rawconsumption$event_date)) +
+  geom_line(aes(y=rawconsumption$consumption), size = 0.6, color="darkred", alpha = 0.5) + 
+  geom_line(aes(y=rawconsumption$fitted), size = 0.6, color="green", alpha = 0.5) + 
+  labs(title = "Comparison Between Actual and Predicted Hourly\nElectricity Consumption from 2017-01-01 to 2021-02-15", 
+       x = "Date",y = "Amount of Electricity(mWh)") +
+  theme_classic()
+a
+```
+
+<p>The predictions generally seem to suit with the actual values. It is observed that necessary changes are made in the forecasts of special days. However, it is also observed that the forecasts deviate especially in cases where the actual value exceeds 40 thousand. There was a decrease in the forecasts during the first three months of coronavirus period, which is desired, but this decrease was not enough.</p> 
+
+<p>Furthermore, this comparison can be seen in detail by narrowing the period. (real prediction period) The day in which prediction is made is assumed to be 14th of February. The prediction for 15th of February can be seen more easily in the graph below.</p> 
+
+```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
+lastvalue <- tail(rawconsumption, 24)
+
+b<- ggplot(lastvalue, aes(x=lastvalue$trend)) +
+  geom_line(aes(y=lastvalue$consumption), size = 0.6, color="darkred", alpha = 0.5) + 
+  geom_line(aes(y=lastvalue$fitted), size = 0.6, color="green", alpha = 0.5) + 
+  labs(title = "Comparison Between Actual and Predicted Hourly\nElectricity Consumption For Last Two Day", 
+       x = "Index",y = "Amount of Electricity(mWh)") +
+  theme_classic()
+b
+
+```
+
+<p>The predictions are in line with the actual data until noon, but it can be seen that the predictions are less than they should be in the afternoon and night. It seems that there are points to be improved in order to increase the accuracy of the predictions. Suggestions for these improvements will be mentioned in the conclusion part. </p> 
+
+# Conclusion and Further Remarks
+
+<p>In this project, the aim was to examine the electricity consumption of Turkey between 2017-01-01 and early 2021, build a suitable model, and predict the day ahead by using data up to the day behind with the model. 
+
+
+# References
+
+* [EPIAS](https://seffaflik.epias.com.tr/transparency/tuketim/gerceklesen-tuketim/gercek-zamanli-tuketim.xhtml)
+* [STHDA](http://www.sthda.com/english/)
+* [Stackoverflow](https://stackoverflow.com/)
+
+# Appendices
+
+Click [here](https://bu-ie-360.github.io/fall20-mibaykal/files/Group8Report.Rmd) to reach the RMD file.
