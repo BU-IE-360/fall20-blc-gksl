@@ -43,8 +43,8 @@ colnames(rawconsumption) <- c("event_date", "event_hour", "consumption",
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 ggplot(rawconsumption, aes(x=rawconsumption$event_date, y=rawconsumption$consumption)) +
-  geom_line(size = 0.6, color="darkred", alpha = 0.5) + 
-  geom_point(size = 0.2, color="green", alpha = 0.5) +
+  geom_line(size = 0.6, color="red", alpha = 0.6) + 
+  geom_point(size = 0.2, color="green", alpha = 0.6) +
   labs(title = "Hourly Electricity Consumption from 2017-01-01 to 2021-01-01", 
        x = "Date",y = "Amount of Electricity(mWh)") +
   theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
@@ -274,6 +274,7 @@ rawconsumption$event_hour <- as.integer(rawconsumption$event_hour)
 rawconsumption <- rbind(rawconsumption,data)
 rawconsumption=rawconsumption[order(event_date,event_hour)]
 
+rawconsumption <- rawconsumption[event_date <= "2021-02-15"]
 head(rawconsumption)
 tail(rawconsumption)
 ```
@@ -295,7 +296,7 @@ rawconsumption[, trend:=c(1:.N)]
 rawconsumption[,doy:=weekdays(event_date)]
 #week controller
 whichweek<-rep(1:215, each = 168)
-asd <-rep(216,72)
+asd <-rep(216,48)
 rawconsumption[,woy:=c(whichweek,asd)]
 ```
 
@@ -506,7 +507,7 @@ rawconsumption[rawconsumption$event_date %>% wday == 7,number_doy7:= as.factor(1
 
 ```
 
-<p> Around the world, [a person sleeps six and a half hour in a day on the average](https://www.huffpost.com/entry/average-daily-nightly-sleep-country-world_n_3805886) and again [a person works 8 to 9 hours in a day on the average](https://en.wikipedia.org/wiki/Working_time) which probably affects their use of electricity crucially. To understand these hourly effects and analyze, every hour as a variable is added to the data table as a factor. If the data hour is decided hour for the variable the factor is one, otherwise zero. After the analysis, what is expected is the consumption to be much less in the hours when people generally sleep than working hours. </p>
+<p> Around the world, [a person sleeps six and a half hour in a day on the averager](https://www.huffpost.com/entry/average-daily-nightly-sleep-country-world_n_3805886) and again [a person works 8 to 9 hours in a day on the average](https://en.wikipedia.org/wiki/Working_time) which probably affects their use of electricity crucially. To understand these hourly effects and analyze, every hour as a variable is added to the data table as a factor. If the data hour is decided hour for the variable the factor is one, otherwise zero. After the analysis, what is expected is the consumption to be much less in the hours when people generally sleep than working hours. </p>
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # create variables for every hour in a day
@@ -631,8 +632,8 @@ tail(rawconsumption)
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # decide which data is test data, which not?
-test <- rawconsumption[event_date>"2021-02-14"]
-rawconsumption <- rawconsumption[event_date<="2021-02-14"]
+test <- rawconsumption[event_date>"2021-02-13"]
+rawconsumption <- rawconsumption[event_date<="2021-02-13"]
 
 tail(test)
 tail(rawconsumption)
@@ -642,11 +643,11 @@ tail(rawconsumption)
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 #test data update?
-test$consumption <- rawconsumption$consumption[35977:36024]
-test$quant5 <- rawconsumption$quant5[35977:36024]
-test$quant25 <- rawconsumption$quant25[35977:36024]
-test$quant75 <- rawconsumption$quant75[35977:36024]
-test$quant95 <- rawconsumption$quant95[35977:36024]
+test$consumption <- rawconsumption$consumption[35953:36000]
+test$quant5 <- rawconsumption$quant5[35953:36000]
+test$quant25 <- rawconsumption$quant25[35953:36000]
+test$quant75 <- rawconsumption$quant75[35953:36000]
+test$quant95 <- rawconsumption$quant95[35953:36000]
 rawconsumption <- rbind(rawconsumption, test)
 ```
 
@@ -713,7 +714,7 @@ output <- function(actual, forecasted){
 output(rawconsumption$consumption, rawconsumption$fitted)
 ```
 
-<p> TWo of the most common metrics used to measure the forecasting accuracy of a model are MAPE and WMAPE, which refer to mean absolute percentage error and weighted mean absolute percentage error. The perfect value for WMAPE may depend on what type of estimation we make. [Generally, MAPE/WMAPE value which is lower than 0.1 can be counted as a good estimate.](https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781119199885.app1) As a result of this study, a WMAPE value of around 0.02558536 was obtained, it can be said that the study became successful.</p>
+<p> TWo of the most common metrics used to measure the forecasting accuracy of a model are MAPE and WMAPE, which refer to mean absolute percentage error and weighted mean absolute percentage error. The perfect value for WMAPE may depend on what type of estimation we make. [Generally, MAPE/WMAPE value which is lower than 0.1 can be counted as a good estimate.](https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781119199885.app1) As a result of this study, a WMAPE value of around 0.0256 was obtained, it can be said that the study became successful.</p>
 
 <p> Now, the comparison of actual values and predicted values for whole data can be seen more easily in the graph below.</p>
 
@@ -748,13 +749,13 @@ b
 
 # Conclusion and Further Remarks
 
-<p>The hourly time series data generally have multiple seasonal components which make them kind of harder to interpret. Apart from that, even after some data manipulation techniques, the time series data still may not fulfill condition to be stationary. Therefore, it is not easy to make clear cut forecasts when considering the time series data. However, with today’s computational power of computers and logical reasoning, it is possible to add and subtract variables from a system and observe if the variables have any statistically significant effect on the data.</p>
+<p>The hourly time series data generally have multiple seasonal components which make them kind of harder to interpret. Apart from that, even after some data manipulation techniques, the time series data still may not fulfill condition to be stationary. Therefore, it is not easy to make clear cut forecasts when considering the time series data. However, with today's computational power of computers and logical reasoning, it is possible to add and subtract variables from a system and observe if the variables have any statistically significant effect on the data.</p> 
 
-<p>In this project, the aim was to examine the electricity consumption of Turkey between 2017-01-01 and early 2021, build a suitable model, and predict the day ahead by using data up to the day behind with the model. Necessary data received from API system. Some manipulations and additions were made on the data. After that, some forecasting methods were used to get the predictions which were needed to complete the work. We created an ARIMA model followed by a linear regression model. After comparing the accuracy of predictions, we selected the linear model to be used for estimation.</p>
+<p>In this project, the aim was to examine the electricity consumption of Turkey between 2017-01-01 and early 2021, build a suitable model, and predict the day ahead by using data up to the day behind with the model. Necessary data received from API system. Some manipulations and additions were made on the data. After that, some forecasting methods were used to get the predictions which were needed to complete the work. We created an ARIMA model followed by a linear regression model. After comparing the accuracy of predictions, we selected the linear model to be used for estimation.</p> 
 
-<p>It is possible to say that the results found in the study were generally good results. MAPE/WMAPE values allow us to say this. Although the prediction model works well overall, it is obvious that it has some shortcomings. As can be seen from the graphics above, it has problems when the consumption exceeds 40 thousand and it cannot fully reflect the coronavirus effect. Coronavirus effect and restrictions should be used more effectively in order to improve the model. High consumption values, especially in the summer period, are not reflected in the estimates, and improvements can be made to solve this problem.</p>
+<p>It is possible to say that the results found in the study were generally good results. MAPE/WMAPE values allow us to say this. Although the prediction model works well overall, it is obvious that it has some shortcomings. As can be seen from the graphics above, it has problems when the consumption exceeds 40 thousand and it cannot fully reflect the coronavirus effect. Coronavirus effect and restrictions should be used more effectively in order to improve the model. High consumption values, especially in the summer period, are not reflected in the estimates, and improvements can be made to solve this problem. </p> 
 
-<p>It can be seen that the electricity consumption of Turkey is increasing over the years. This may be due to things like population growth, increase in household numbers, industrial development. Although not so much details about this issue have been included in our project, these situations should not be ignored in wider and larger studies. For this project, extra regressors such as industry index, more detailed temperature values (weighted average for each city or any better solution), more mathematical/analytic expressions of the coronavirus period and the effect of the restrictions applied can be added to our model. In this way, the improved model can work better than the current model.</p>
+<p>It can be seen that the electricity consumption of Turkey is increasing over the years. This may be due to things like population growth, increase in household numbers, industrial development. Although not so much details about this issue have been included in our project, these situations should not be ignored in wider and larger studies. For this project, extra regressors such as industry index, more detailed temperature values (weighted average for each city or any better solution), more mathematical/analytic expressions of the coronavirus period and the effect of the restrictions applied can be added to our model. In this way, the improved model can work better than the current model. </p>
 
 
 # References
