@@ -759,4 +759,4 @@ b
 
 # Appendices
 
-Click [here](https://bu-ie-360.github.io/fall20-mibaykal/files/Group8Report.Rmd) to reach the RMD file.
+Click [here](https://bu-ie-360.github.io/fall20-blc-gksl/files/Group8Report.Rmd) to reach the RMD file.
