@@ -34,7 +34,7 @@ require("xlsx")
 require("lubridate")
 require("readr")
 
-setwd("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/PR")
+setwd("D:/MyUbuntu/GitHub/fall20-blc-gksl/files/PR")
 rawconsumption <- as.data.table(read_excel("bulk_consumption_with_temp_excel.xlsx"))
 
 colnames(rawconsumption) <- c("event_date", "event_hour", "consumption", 
@@ -256,7 +256,7 @@ Now the root directory added and after that the data taken from local directory 
 
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
-setwd("D:/AILEvs/EZ/EGITIM/AAAA_EE_4.YIL/IE_360/PR")
+setwd("D:/MyUbuntu/GitHub/fall20-blc-gksl/files/PR")
 rawconsumption <- as.data.table(read_excel("bulk_consumption_with_temp_excel.xlsx"))
 
 colnames(rawconsumption) <- c("event_date", "event_hour", "consumption", 
@@ -295,7 +295,7 @@ rawconsumption[, trend:=c(1:.N)]
 rawconsumption[,doy:=weekdays(event_date)]
 #week controller
 whichweek<-rep(1:215, each = 168)
-asd <-rep(216,48)
+asd <-rep(216,72)
 rawconsumption[,woy:=c(whichweek,asd)]
 ```
 
@@ -631,8 +631,8 @@ tail(rawconsumption)
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # decide which data is test data, which not?
-test <- rawconsumption[event_date>"2021-02-13"]
-rawconsumption <- rawconsumption[event_date<="2021-02-13"]
+test <- rawconsumption[event_date>"2021-02-14"]
+rawconsumption <- rawconsumption[event_date<="2021-02-14"]
 
 tail(test)
 tail(rawconsumption)
@@ -642,11 +642,11 @@ tail(rawconsumption)
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 #test data update?
-test$consumption <- rawconsumption$consumption[35953:36000]
-test$quant5 <- rawconsumption$quant5[35953:36000]
-test$quant25 <- rawconsumption$quant25[35953:36000]
-test$quant75 <- rawconsumption$quant75[35953:36000]
-test$quant95 <- rawconsumption$quant95[35953:36000]
+test$consumption <- rawconsumption$consumption[35977:36024]
+test$quant5 <- rawconsumption$quant5[35977:36024]
+test$quant25 <- rawconsumption$quant25[35977:36024]
+test$quant75 <- rawconsumption$quant75[35977:36024]
+test$quant95 <- rawconsumption$quant95[35977:36024]
 rawconsumption <- rbind(rawconsumption, test)
 ```
 
@@ -748,7 +748,13 @@ b
 
 # Conclusion and Further Remarks
 
-<p>In this project, the aim was to examine the electricity consumption of Turkey between 2017-01-01 and early 2021, build a suitable model, and predict the day ahead by using data up to the day behind with the model. 
+<p>The hourly time series data generally have multiple seasonal components which make them kind of harder to interpret. Apart from that, even after some data manipulation techniques, the time series data still may not fulfill condition to be stationary. Therefore, it is not easy to make clear cut forecasts when considering the time series data. However, with today’s computational power of computers and logical reasoning, it is possible to add and subtract variables from a system and observe if the variables have any statistically significant effect on the data.</p>
+
+<p>In this project, the aim was to examine the electricity consumption of Turkey between 2017-01-01 and early 2021, build a suitable model, and predict the day ahead by using data up to the day behind with the model. Necessary data received from API system. Some manipulations and additions were made on the data. After that, some forecasting methods were used to get the predictions which were needed to complete the work. We created an ARIMA model followed by a linear regression model. After comparing the accuracy of predictions, we selected the linear model to be used for estimation.</p>
+
+<p>It is possible to say that the results found in the study were generally good results. MAPE/WMAPE values allow us to say this. Although the prediction model works well overall, it is obvious that it has some shortcomings. As can be seen from the graphics above, it has problems when the consumption exceeds 40 thousand and it cannot fully reflect the coronavirus effect. Coronavirus effect and restrictions should be used more effectively in order to improve the model. High consumption values, especially in the summer period, are not reflected in the estimates, and improvements can be made to solve this problem.</p>
+
+<p>It can be seen that the electricity consumption of Turkey is increasing over the years. This may be due to things like population growth, increase in household numbers, industrial development. Although not so much details about this issue have been included in our project, these situations should not be ignored in wider and larger studies. For this project, extra regressors such as industry index, more detailed temperature values (weighted average for each city or any better solution), more mathematical/analytic expressions of the coronavirus period and the effect of the restrictions applied can be added to our model. In this way, the improved model can work better than the current model.</p>
 
 
 # References
@@ -759,4 +765,4 @@ b
 
 # Appendices
 
-Click [here](https://bu-ie-360.github.io/fall20-blc-gksl/files/Group8Report.Rmd) to reach the RMD file.
+Click [here](https://github.com/BU-IE-360/fall20-blc-gksl/blob/master/files/PR/Group8Report.Rmd) to reach the RMD file.
