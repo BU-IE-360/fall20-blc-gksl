@@ -9,3 +9,6 @@
 
 ## Homework 2 (December 17)
 [Here](files/HW2/Goksel-Bilici_HW2.html) is my second homework, which try to find the relation between CPI and Dollar exchange rates, imports.
+
+## Group 8 Term Project
+[Here](files/PR/Group8Report.html) is my group term project, which is group 8. Forecasting 2 days ahead.
