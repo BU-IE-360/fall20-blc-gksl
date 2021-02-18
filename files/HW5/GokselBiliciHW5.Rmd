@@ -4,6 +4,12 @@ author: "Göksel Bilici"
 date: "18 02 2021"
 output: html_document
 ---
+# Introduction
+<p> When there are a large number of potential independent variables that can be used to model the dependent variable, the general approach is to use the fewest number of independent variables that can do a sufficiently good job of predicting the value of the dependent variable. This leads us to the concept of stepwise regression.</p>
+<p> In this study the aim was to apply stepwise regression to a real-like case an understand if all variables have significant effect on our outcomes. Here we tried to check effect of on sales. And with that way, we can make a simpler and more accurate model. And after that we can forecast our focus outcomes better. </p>
+
+# Manual Implementation
+First we add our required libraries and take the data from our local directory. After that because it is a good practice, we rename our columns in a way it is easier to understand. After that, we take a look into our data. </p>
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 require(lubridate)
@@ -26,9 +32,9 @@ theData <- as.data.table(theData)
 theData <- theData %>% rename(ANXIETY = ANX,
                    EXPERIENCE = EXP,
                    SELLING_APTITUDE = APT)
-theData
+head(theData)
 ```
-
+<p> In the data we want the correlation of each variables to each other. Therefore, we used a function so that both mathematically and visually to investigate our variables relation to each other. From result we can see, the most related variable to sales is variable age. </p>
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Part a
 # theCorrelation <- cor(theData)
@@ -37,6 +43,9 @@ theData
 source("http://www.sthda.com/upload/rquery_cormat.r")
 rquery.cormat(theData, type="upper")
 ```
+
+<p> Now we aim to make stepwise regression manually. So first we make a current model only depending on "AGE". After that we make new 4 models to add other 4 variables and check their effect and add them to the odel if needed.</p>
+<p> From anova test results we can observe that "SELLING_APTITUDE" is an important, and between 4 added variables the most important variable, so we update our current model by adding "SELLING_APTITUDE" to it.</p>
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Part b
 # currentModel to keep track of model
@@ -58,6 +67,7 @@ anova(currentModel,newModel4)
 # newModel3 was statistically important
 currentModel <- newModel3
 ```
+<p> After first adding, we want to check if starting variable "AGE" is important or not. So we make a new  model and compare new model and current model. From results we see that when we substract "AGE", the system is affected significantly. So we won't subtract "AGE" from our current model.</p>
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # First Reducing Step
 reduceModel1 <- lm(SALES ~ SELLING_APTITUDE, data=theData)
@@ -65,7 +75,8 @@ anova(currentModel, reduceModel1)
 
 # AGE was important so no removing needed
 ```
-
+<p> Currently we have both "AGE" and "SELLING_APTITUDE" variables and we want to check effect of other 2 variables if they are important for our model</p>
+<p> From results we can tell the other 2 variables are not statistically important so we wont add anything to our model</p>
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Second Adding Step
@@ -79,6 +90,9 @@ anova(currentModel,newModel3)
 # No significant p-value and F-test so no adding
 ```
 
+<p> We added no regressors from previous step. Now time to check current regressors from model and if they are important</p>
+
+<p> Again from results we observe both "AGE" and "SELLING_APTITUDE" are statistically important. Therefore, no reduction will be done and for "part b" we conclude that our model will contain an intercept, regressor "AGE" and regressor "SELLING_APTITUDE". </p>
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Second Reduction Step
@@ -95,6 +109,11 @@ anova(currentModel, reduceModel3)
 fitBestFromStepImplementation <- currentModel
 ```
 
+# Step Function Method
+
+<p> now it is time to use "step" function to get most suitable model. To find that through "step" function, first we define two model and place them into the function. One model named fitStart has only 1 intercept in it, and the other model named fitAll has all regressors in it. And our "step" function will gradually check variables that are in fitAll and not in fitStart and if needed it will add that variable into fitStart model and call best suitable model at the and. When the direction in "step" function is "both" it means if needed some variables will be added and then if needed some variables will be subtracted from ideal model in next steps. And if direction is "forward" the "step" function only will try to add variables if needed and "backward" will subtract if needed.</p>
+
+<p> From call of the result of the "step" function. The model is decided to depend on intercept, "AGE" and "SELLING_APTITUDE".</p>
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Part c
@@ -105,22 +124,28 @@ stepResults
 fitBestFromStepFunction <- lm(formula = SALES ~ AGE + SELLING_APTITUDE, data = theData)
 fitBestFromStepFunction
 ```
-
+### Comparing manual and "step" function results
+<p> Now when we compare the "step" function results and manual calculation results, we realize that they are the same. It is supposed to be that way, but if the system have had much more variables, the results would be changed.</p>
 
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Compare both model from manual and functional results
 fitBestFromStepImplementation
 fitBestFromStepFunction
 ```
+# Deciding Final Model
 
-
+<p> Now from both calculated models before, we conclude that our model will depend on "AGE" and "SELLING_APTITUDE" regressors from the data table.  
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Part d
 finalModel <- lm(SALES ~ AGE + SELLING_APTITUDE, data=theData)
 finalModel
 ```
+# GPA Effect on Sales
 
-
+<p> Now we have a final model, we create a new model and add variable "GPA" to it. Our aim is to analyze the high school GPA effect on sales.</p>
+<p> Before seeing effect of "GPA" it is important to define our hypothesis: </p>
++ Null Hypothesis(H0)  =>  The high school GPA of a person is not relevant to his/her sales.
++ Alternative Hypothesis(H1)  =>  The high school GPA of a person is effective on his/her sales.
 ```{r, eval = TRUE, error=FALSE, warning=FALSE, message = FALSE, fig.width = 12, include = TRUE}
 # Part e
 finalModelWithGPA <- lm(SALES ~ AGE + SELLING_APTITUDE + GPA, data=theData)
@@ -129,6 +154,12 @@ anova(finalModel, finalModelWithGPA)
 # Hypothesis 1 => GPA is significant for sales
 # p-value => 0.6611
 ```
+<p> After making "anova" test we see that the F-test result is 0.1967 and its p-value is 0.6611, which means we fail to reject null hypothesis and we can say that:</p>
++ The high school GPA and sales are irrelevant. 
+
+
+# Referance
+ [Real Statistics](https://www.real-statistics.com/multiple-regression/stepwise-regression/)
 
 # Appendices
 
