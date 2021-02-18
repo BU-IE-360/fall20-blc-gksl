@@ -12,3 +12,6 @@
 
 ## Group 8 Term Project
 [Here](files/PR/Group8Report.html) is my group term project, which is group 8. Forecasting 2 days ahead.
+
+## Homework 5 (February 18)
+[Here](files/HW5/GokselBiliciHW5.html) is my fifth homework, which is about Stepwise Regression in Forecasting Tasks.
